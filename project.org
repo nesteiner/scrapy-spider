@@ -1,0 +1,72 @@
+#+SEQ_TODO: TODO(t) DOING(o) | DONE(d) CANCELED(c@/!)
+* Python 爬虫实例
+[[https://github.com/injetlee/Python][参考1]]
+[[https://github.com/wistbean/learn_python3_spider][小帅比的爬虫教程]]
+
+** 准备阶段
+*** DOING 探索项目 [0/5]
+- [ ] 为什么要按照证书
+- [ ] selenium 有没有 css语法
+- [ ] xpath 需要学吗
+- [ ] scrapy 框架补全
+- [ ] 需要请求头 怎么办 
+- [ ] scrapy 架构熟练掌握
+** 需求
+*** 图示解刨Selenium
+*** 文档 Selenium
+** 练手项目
+*** 爬取糗事百科
+
+**** 段子爬取
+***** DONE 存储
+文本
+***** DONE css 选择器 
+*div.article.block.untagged.mb15*
+***** DONE 需要展示的内容 忽略 *typs_long* 的内容
+1. 作者
+*div.author.clearfix h2::text*
+2. 性别
+*selector.css('div.articleGender::attr(class)').extract_first().split(' ')[1]*
+3. 年龄
+*div.author.clearfix > div.articleGender::text*
+4. 内容
+*div.content span::text*
+5. 好笑数
+*div.stats i.number::text*
+
+
+***** DOING 下一页的网址
+*疑问*
+如何找到的元素，其中子元素符合一定条件
+
+*页面选择器*
+__ul.pagination li a__
+
+*下一页的网址*
+__selector.attrib['href']__
+
+***** DONE pipeline
+***** DONE 请求头
+#+BEGIN_SRC python
+  class ShitMiddleware:
+      def process_request(self, request, spider):
+          request.headers['User-Agent'] = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
+
+#+END_SRC
+***** DOING 错误报告
+- [ ] 内容不完全
+
+*** 爬取妹子图
+*** Ajax Python岗位分析
+*** Selenium 项目 ？？
+*** 抖音App爬取
+*** 问题
+
+** 高阶项目
+*** 淘宝
+*** 京东
+*** 反爬
+
+* 问题
+- [ ] 为什么 Selector 与 SelectorList 都能用 css方法，并extract()
+- [ ] 如何查找符合条件的元素
