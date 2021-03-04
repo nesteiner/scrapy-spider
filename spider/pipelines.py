@@ -3,7 +3,7 @@
 # Define your item pipelines here
 #
 # Don't forget to add your pipeline to the ITEM_PIPELINES setting
-# See: https://docs.scrapy.org/en/latest/topics/item-pipeline.html
+# See: https://docs.scrapy.org/en/latest/topics/item-pipelinne.html
 
 import os
 
@@ -34,3 +34,27 @@ class ShitPipeline:
             f.writelines(content)
             f.write('\n')
 
+class DoubanPipeline:
+    def __init__(self):
+        self.folder = '/home/steiner/spider/storage/'
+        self.path   = self.folder + 'movies'
+        if not os.path.exists(self.folder):
+            os.makedirs(self.folder)
+
+        self.format = ("directors: {}\n"
+                       "rate: {}\n"
+                       "star: {}\n"
+                       "title: {}\n"
+                       "casts: {}\n"
+                       "cover_url: {}\n")
+        
+    def process_item(self, item, spider):
+        with open(self.path, 'a') as f:
+            content = self.format.format(item['directors'],
+                                         item['rate'],
+                                         item['star'],
+                                         item['title'],
+                                         item['casts'],
+                                         item['cover_url'])
+            f.writelines(content)
+            f.write('\n')

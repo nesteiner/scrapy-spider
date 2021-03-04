@@ -4,7 +4,7 @@
 [[https://github.com/wistbean/learn_python3_spider][小帅比的爬虫教程]]
 
 ** 准备阶段
-*** DOING 探索项目 [0/5]
+*** DOING 疑问 [0/5]
 - [ ] 为什么要按照证书
 - [ ] selenium 有没有 css语法
 - [ ] xpath 需要学吗
@@ -15,14 +15,14 @@
 *** 图示解刨Selenium
 *** 文档 Selenium
 ** 练手项目
-*** 爬取糗事百科
-
-**** 段子爬取
-***** DONE 存储
+*** DONE 爬取糗事百科
+[[file:./spider/spiders/shit.py][spider file]]
+[[file:./storage/shit][实验结果]]
+**** DONE 存储
 文本
-***** DONE css 选择器 
+**** DONE css 选择器 
 *div.article.block.untagged.mb15*
-***** DONE 需要展示的内容 忽略 *typs_long* 的内容
+**** DONE 需要展示的内容 忽略 *typs_long* 的内容
 1. 作者
 *div.author.clearfix h2::text*
 2. 性别
@@ -35,7 +35,9 @@
 *div.stats i.number::text*
 
 
-***** DOING 下一页的网址
+**** CANCELED 下一页的网址
+- State "CANCELED"   from "DOING"      [2021-03-03 三 19:54] \\
+  css选择器里好像找不到，得遍历，一个一个试
 *疑问*
 如何找到的元素，其中子元素符合一定条件
 
@@ -45,22 +47,102 @@ __ul.pagination li a__
 *下一页的网址*
 __selector.attrib['href']__
 
-***** DONE pipeline
-***** DONE 请求头
+**** DONE pipeline
+**** DONE 请求头
 #+BEGIN_SRC python
   class ShitMiddleware:
       def process_request(self, request, spider):
           request.headers['User-Agent'] = "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/41.0.2228.0 Safari/537.36"
 
 #+END_SRC
-***** DOING 错误报告
-- [ ] 内容不完全
 
-*** 爬取妹子图
-*** Ajax Python岗位分析
+*** CANCELED 爬取妹子图
+- State "CANCELED"   from              [2021-03-03 三 19:58] \\
+  以前写过好多遍了，懒得写了
+*** DONE Ajax 豆瓣电影爬取
+**** DONE 请求链接
+https://movie.douban.com/j/new_search_subjects?sort=T&range=0%2C10&tags=%E5%8A%B1%E5%BF%97&start=0
+
+获取下一个链接，将 *start* 后的参数修改即可，比如修改为 *20*
+**** DONE 请求方法
+GET
+**** DONE 中间件处理请求
+在这里能力有限，只能更换 *User-Agent*
+另外不需要设置 *Cookie*
+[[file:./spider/middlewares.py][中间件设置]]
+
+不要忘了在设置文件里调整
+#+BEGIN_SRC python
+  DOWNLOADER_MIDDLEWARES = {
+      'spider.middlewares.SpiderDownloaderMiddleware': 543,
+      # 'spider.middlewares.ShitMiddleware': 543,
+      'spider.middlewares.UserAgentMiddleware': 530,
+  }
+
+#+END_SRC
+
+值调小一点，这样请求会被优先处理，其实无所谓
+**** DONE 存储对象 对应 json 字段
+json_data['data'][0...num]
+1. 演员列表 casts: list
+2. 封面地址 cover: str
+3. 导演    directors: list
+4. 评分    rate: str of float
+5. 星数    star: str
+6. 电影名  title: str
+#+BEGIN_SRC python
+  class Movie(scrapy.Item):
+      directors = scrapy.Field()
+      rate      = scrapy.Field()
+      star      = scrapy.Field()
+      title     = scrapy.Field()
+      casts     = scrapy.Field()
+      cover_url = scrapy.Field()
+#+END_SRC
+**** DONE Pipeline 处理对象
+文本存储
+#+BEGIN_SRC python
+  class DoubanPipeline:
+      def __init__(self):
+          self.folder = '/home/steiner/spider/storage/'
+          self.path   = self.folder + 'movies'
+          if not os.path.exists(self.folder):
+              os.makedirs(self.folder)
+
+          self.format = ("directors: {}\n"
+                         "rate: {}\n"
+                         "star: {}\n"
+                         "title: {}\n"
+                         "casts: {}\n"
+                         "cover_url: {}\n")
+        
+      def process_item(self, item, spider):
+          with open(self.path, 'a') as f:
+              content = self.format.format(item['directors'],
+                                           item['rate'],
+                                           item['star'],
+                                           item['title'],
+                                           item['casts'],
+                                           item['cover_url'])
+              f.writelines(content)
+              f.write('\n')
+
+#+END_SRC
+**** DONE 错误报告
+1. 不需要遵守 *robot.txt*  在设置文件中调整为 *False* 即可
+2. 反爬虫策略只有更换 *User-Agent* ，下一步考虑 *代理池* 与 *Cookie池*
+3. 无法得知爬虫停止的条件
+
+**** DONE 存储文件
+[[file:./storage/movies][movies]]
 *** Selenium 项目 ？？
 *** 抖音App爬取
 *** 问题
+
+** 疑问
+*** 反爬虫策略
+- ip代理池
+- Cookie 池
 
 ** 高阶项目
 *** 淘宝

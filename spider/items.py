@@ -21,3 +21,11 @@ class ShitItem(scrapy.Item):
     laugh  = scrapy.Field()
 
     
+class Movie(scrapy.Item):
+    directors = scrapy.Field()
+    rate      = scrapy.Field()
+    star      = scrapy.Field()
+    title     = scrapy.Field()
+    casts     = scrapy.Field()
+    cover_url = scrapy.Field()
+    
