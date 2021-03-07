@@ -1,4 +1,4 @@
-#+SEQ_TODO: TODO(t) DOING(o) | DONE(d) CANCELED(c@/!)
+#+SEQ_TODO: TODO(t) DOING(o) | DONE(d) CANCELED(c@/!) WAIT(w@)
 * Python 爬虫实例
 [[https://github.com/injetlee/Python][参考1]]
 [[https://github.com/wistbean/learn_python3_spider][小帅比的爬虫教程]]
@@ -14,7 +14,7 @@
 ** 需求
 *** 图示解刨Selenium
 *** 文档 Selenium
-** 练手项目
+** 练手项目[4/5]
 *** DONE 爬取糗事百科
 [[file:./spider/spiders/shit.py][spider file]]
 [[file:./storage/shit][实验结果]]
@@ -60,6 +60,8 @@ __selector.attrib['href']__
 - State "CANCELED"   from              [2021-03-03 三 19:58] \\
   以前写过好多遍了，懒得写了
 *** DONE Ajax 豆瓣电影爬取
+*提示*
+可以用浏览器查看 ajax 请求链接
 **** DONE 请求链接
 https://movie.douban.com/j/new_search_subjects?sort=T&range=0%2C10&tags=%E5%8A%B1%E5%BF%97&start=0
 
@@ -130,25 +132,93 @@ json_data['data'][0...num]
 #+END_SRC
 **** DONE 错误报告
 1. 不需要遵守 *robot.txt*  在设置文件中调整为 *False* 即可
-2. 反爬虫策略只有更换 *User-Agent* ，下一步考虑 *代理池* 与 *Cookie池*
-3. 无法得知爬虫停止的条件
+2. 反爬虫策略只有更换 *User-Agent* 与限制下载速度
+3. 下一步考虑 *代理池* 与 *Cookie池*
+4. 无法得知爬虫停止的条件
 
 **** DONE 存储文件
 [[file:./storage/movies][movies]]
-*** Selenium 项目 ？？
-*** 抖音App爬取
-*** 问题
+*** DONE Selenium 项目
+**** DONE 基础操作，最简demo
+***** 打开一个页面
+***** 定位到一个 *WebElement*
+***** CANCELED 操作
+- State "CANCELED"   from "CANCELED"   [2021-03-06 六 00:32] \\
+  写下面去了
+   - [X] 元素操作
+     - clear
+     - click
+     - submit
+     - send_keys(self, *value) **如果传入多个参数会发生什么**
+   - [X] 元素属性
+     get_attribute(self, name)
 
-** 疑问
-*** 反爬虫策略
-- ip代理池
-- Cookie 池
+   - [ ] 集成元素操作 *ActionChains*
+     [[file:~/workspace/Nexus/docs/selenium.md][我这里以前写过一份文档]]
+   - [ ] 窗口操作
+***** 实例
+#+BEGIN_SRC python
+  from selenium import webdriver
+  from selenium.webdriver.common.keys import Keys
+
+  def css_search(driver, string):
+      return driver.find_elements_by_css_selector(string)
+
+    
+  driver = webdriver.Firefox()
+  driver.get('https://www.baidu.com')
+
+  input = css_search(driver, '#kw')[0]
+  # TODO 传入多个参数试试
+  # input.send_keys('苍老师照片')
+  input.send_keys('苍老师', '照片', Keys.ENTER)
+
+  # button = css_search(driver, '#su')[0]
+  # button.click()
+#+END_SRC
+*** TODO 表情包爬取
+
+** 测试 Playground
+[[http://exercise.kingname.info/][come here]]
+[[https://juejin.cn/post/6844903716101816334][教程]]
+
+*** WAIT 下载中间件编写
+- State "WAIT"       from "DOING"      [2021-03-07 日 00:43] \\
+  先放着吧，还要等 scrapy 与 redis 结合这块没完成
+**** TODO Cookie
+- Cookie 怎么获取
+- 获取多个Cookie
+- 定时功能
+**** DONE User-Agent 
+#+BEGIN_SRC python
+  class UserAgentMiddleware:
+
+      def process_request(self, request, spider):
+          request.headers['User-Agent'] = random.choice(settings['USER_AGENTS'])
+
+#+END_SRC
+**** DOING Proxy
+- ip代理池构造
+
 
 ** 高阶项目
 *** 淘宝
 *** 京东
 *** 反爬
+*** 抖音App爬取
+*** 试试看大规模爬取 ajax 豆瓣
+** DOING 思维导图
+*不管怎么样，简单的整理一下文档，记得总结*
 
 * 问题
-- [ ] 为什么 Selector 与 SelectorList 都能用 css方法，并extract()
-- [ ] 如何查找符合条件的元素
+1. 为什么 Selector 与 SelectorList 都能用 css方法，并extract()
+2. 如何查找符合条件的元素
+3. Selenium
+   - 与scrapy结合成中间件
+   - actionchains
+   - 高级动作
+   - 窗口操作
+4. 爬虫 与 数据分析结合
+5. 反爬虫策略
+   - ip代理池
+   - Cookie 池

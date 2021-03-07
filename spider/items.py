@@ -28,4 +28,3 @@ class Movie(scrapy.Item):
     title     = scrapy.Field()
     casts     = scrapy.Field()
     cover_url = scrapy.Field()
-    

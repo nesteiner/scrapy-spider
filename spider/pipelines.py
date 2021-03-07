@@ -58,3 +58,15 @@ class DoubanPipeline:
                                          item['cover_url'])
             f.writelines(content)
             f.write('\n')
+
+class TestPipeline:
+    def __init__(self):
+        self.folder = '/home/steiner/spider/storage/'
+        self.path   = self.folder + 'ips'
+        if not os.path.exists(self.folder):
+            os.makedirs(self.folder)
+
+    def process_item(self, item, spider):
+        with open(self.path, 'a') as f:
+            f.writelines(item['text'])
+            f.write('\n')

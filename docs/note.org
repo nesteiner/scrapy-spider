@@ -1,0 +1,171 @@
+#+SEQ_TODO: TODO(t) DOING(o) | DONE(d) CANCELED(c@/!) WAIT(w@)
+* Scrapy 爬虫实例总结
+** DONE image here
+[[file:./images/scrapy.jpg]]
+** DONE 请求
+scrapy 向目标网站发起请求，得到 Response 响应后，将其传递给 callback 参数
+
+#+BEGIN_SRC python
+  yield scrapy.Request(url=url, callback = callback)
+#+END_SRC
+
+但是在请求过程中难免遇到一些请求错误，这时可以通过中间件加工 *请求* 对象，然后再发送
+** DONE 加工
+- State "WAIT"       from "DOING"      [2021-03-07 日 14:29] \\
+  中间件的三个处理方法还不清楚
+加工请求主要通过 *下载中间件* ，具有优先级
+其中中间值就像离程序的距离一样，离得越近越先执行，离得越远越晚执行
+下载中间件不仅可以处理请求， 还可以处理响应，再加上优先级，处理顺序就对应上了
+
+#+BEGIN_SRC python
+  class SpiderDownloaderMiddleware(object):
+      def process_request(self, request, spider):
+          # Called for each request that goes through the downloader
+          # middleware.
+
+          # Must either:
+          # - return None: continue processing this request
+          # - or return a Response object
+          # - or return a Request object
+          # - or raise IgnoreRequest: process_exception() methods of
+          #   installed downloader middleware will be called
+          return None
+
+      def process_response(self, request, response, spider):
+          # Called with the response returned from the downloader.
+
+          # Must either;
+          # - return a Response object
+          # - return a Request object
+          # - or raise IgnoreRequest
+          return response
+
+      def process_exception(self, request, exception, spider):
+          # Called when a download handler or a process_request()
+          # (from other downloader middleware) raises an exception.
+
+          # Must either:
+          # - return None: continue processing this exception
+          # - return a Response object: stops process_exception() chain
+          # - return a Request object: stops process_exception() chain
+          pass
+#+END_SRC
+
+处理完之后怎么办，返回值是什么？
+在 *process_request* 中
+- Retuen None: 将请求交给后续的中间件进行处理；
+- Return Request: 将请求交给调度器重新调度，并终止后续中间件的执行；
+- Return Response: 终止后续中间件及下载器的执行，直接将Response交给引擎。
+- Return Except: 抛出异常
+
+在 *process_response* 中
+- Return Request: 终止后续中间件的执行，将请求重新交给调度器进行调度
+- Return Response: 继续执行后续的中间件
+- Return Except: 抛出异常
+
+
+** DONE 解析
+解析函数在 调用爬虫类 的 *parse* 方法中
+#+BEGIN_SRC python
+  import scrapy
+
+  class Test(scrapy.Spider):
+      name = 'test'
+    
+      def start_requests(self):
+          self.base_url = 'http://exercise.kingname.info/exercise_middleware_ua/{}'
+          self.offset = 1
+
+          yield scrapy.Request(url = self.base_url.format(self.offset), callback = self.parse)
+
+      def parse(self, response):
+          yield {'text': response.body_as_unicode()}
+
+          if self.offset <= 10:
+              self.offset += 1
+              yield scrapy.Request(url=self.base_url.format(self.offset), callback = self.parse)
+
+#+END_SRC
+
+*parse* 里返回的值可以是 *新的请求*, 传递给爬虫引擎，获得响应后交给 *callback* 回调处理
+在这里回调是 *parse* 函数
+也可以是处理好后的 *item*, 传递给 *parse* 方法
+
+** DONE 处理
+处理当然可以写在 调用的爬虫类 的成员方法中，但是我们要分割这些功能
+爬虫类在 *parse* 过后，将解析后的 *item* 传递给 *pipeline* 对象，交由其处理
+重点需要编辑的函数是 *process_item*
+#+BEGIN_SRC python
+  class TestPipeline:
+      def __init__(self):
+          self.folder = '/home/steiner/spider/storage/'
+          self.path   = self.folder + 'ips'
+          if not os.path.exists(self.folder):
+              os.makedirs(self.folder)
+
+      def process_item(self, item, spider):
+          with open(self.path, 'a') as f:
+              f.writelines(item['text'])
+              f.write('\n')
+
+#+END_SRC
+** DONE 补充
+*** 爬虫的 name
+当调用爬虫 
+#+BEGIN_SRC bash
+  scrapy crawl spider-name
+#+END_SRC
+
+需要为爬虫类定义类的静态变量 *name*, /scrapy/ 才能找到这个爬虫
+*** 中间件的返回值
+中间件一般返回 *None* 或 *Response* 后交给后面的中间件处理就好了
+如果返回的是 *Request* 会重新调度
+*** start_requests
+*scrapy* 除了设置 /start_urls/ 来确定第一个爬取的网站链接外，
+可以定义 /start_requsets/ 来替代
+#+BEGIN_SRC python
+      def start_requests(self):
+          self.base_url = 'http://exercise.kingname.info/exercise_middleware_ua/{}'
+          self.offset = 1
+
+          yield scrapy.Request(url = self.base_url.format(self.offset), callback = self.parse)
+#+END_SRC
+
+还挺简单的
+
+*** 导入settings中的变量
+在 /settings.py/ 中定义了一些比较长的变量，这个时候需要在其他文件中调用怎么办
+这里本来有一个办法，不过他是无效的
+#+BEGIN_SRC python
+  from scrapy.conf import settings
+  settings['User-Agents'] # User-Agents defined in setting.py
+#+END_SRC
+
+我也不知道为什么，现在有一个解决方法
+#+BEGIN_SRC python
+  from scrapy.utils.project import get_project_settings
+  settings = get_project_settings()
+
+#+END_SRC
+
+像之前那样调用就行了
+** WAIT 疑问
+- State "WAIT"       from              [2021-03-07 日 15:02] \\
+  *process_exception* 不会用啊，也不知道用在哪里
+*** process_exception 的调用与返回值
+/他娘的不会用啊/
+
+当下载处理器(download handler)或 process_request() (下载中间件)抛出异常(包括IgnoreRequest异常)时，Scrapy调用 process_exception() 。process_exception() 应该返回以下之一
+- 返回 None
+- 一个 Response 对象
+- 一个 Request 对象。
+
+- 如果其返回 None ，Scrapy将会继续处理该异常，接着调用已安装的其他中间件的 process_exception() 方法，直到所有中间件都被调用完毕，则调用默认的异常处理。
+- 如果其返回一个 Response 对象，则已安装的中间件链的 process_response() 方法被调用。Scrapy将不会调用任何其他中间件的 process_exception() 方法。
+- 如果其返回一个 Request 对象， 则返回的request将会被重新调用下载。这将停止中间件的 process_exception() 方法执行，就如返回一个response的那样。
+参数:
+　　- request (是 Request 对象) – 产生异常的request
+　　- exception (Exception 对象) – 抛出的异常
+　　- spider (Spider 对象) – request对应的spider
+
+ 
